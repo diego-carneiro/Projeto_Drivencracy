@@ -1,9 +1,11 @@
 import joi from "joi";
 import dayjs from "dayjs";
-import { MongoClient } from "mongodb";
+import utc from "dayjs/plugin/utc.js"
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from 'dotenv';
 
 dotenv.config();
+dayjs.extend(utc);
 
 const titleSchema = joi.object({
     title: joi.string().required()
@@ -17,6 +19,7 @@ mongoClient.connect().then(() => {
 
 export async function createChoice(request, response) {
     const choice = request.body;
+    const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
 
     try {
         const validation = titleSchema.validate(request.body);
@@ -25,13 +28,22 @@ export async function createChoice(request, response) {
             return response.status(422).send(validation.error.details);
         }
 
-        const isCreated = await db.collection("pools").findOne({ _id: choice.poolId });
-
-        if (isCreated) {
+        const isCreated = await db.collection("pools").findOne({ _id: new ObjectId(choice.poolId) });
+        
+        if (!isCreated) {
             return response.sendStatus(404);
+        }
+        
+        const expireDate = isCreated.expireAt;
+
+        const diff = dayjs(expireDate).diff(currentDay, 'minutes')
+
+        if (diff === 0) {
+            await db.collection("pools").deleteOne({ _id: new ObjectId(choice.poolId) })
         }
 
         const isRepeated = await db.collection("choices").findOne({ title: choice.title });
+        // console.log(isRepeated, "ISSO AQUI");
 
         if (isRepeated) {
             return response.sendStatus(409);
@@ -63,19 +75,24 @@ export async function getChoices(request, response) {
 
 export async function vote(request, response) {
     const choiceId = request.params.id;
-console.log(choiceId);
+
     try {
-        const choice = await db.collection("choices").findOne({ _id: ObjectId(choiceId) });
-console.log(choice); 
+        const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
+
+
+        const choice = await db.collection("choices").findOne({ _id: new ObjectId(choiceId) });
+
         if (!choice) {
             return response.sendStatus(404);
         }
 
-        const saveVote = await db.collection("vote").insertOne({
-            id: choiceId,
-            
+
+
+        const saveVote = await db.collection("votes").insertOne({
+            createdAt: currentDay,
+            choiceId: choiceId,
         });
-     
+
         response.status(200).send(choice);
     } catch (error) {
         console.log(error, "Error getting pool's choices");
@@ -83,4 +100,10 @@ console.log(choice);
     }
 }
 
+const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
 
+const defaultExpiration = dayjs().add("30", "day").utc().local().format("YYYY-MM-DD HH:mm");
+console.log(defaultExpiration);
+
+const diff = dayjs(defaultExpiration).diff(currentDay, 'minutes')
+console.log(diff);

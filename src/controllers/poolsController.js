@@ -17,12 +17,18 @@ mongoClient.connect().then(() => {
 
 export async function createPool(request, response) {
     const pool = request.body;
+    const defaultExpiration = dayjs().add("30", "day").utc().local().format("YYYY-MM-DD HH:mm");
 
     try {
         const validation = titleSchema.validate(request.body);
 
         if (validation.error) {
             return response.status(422).send(validation.error.details);
+        }
+
+        if (pool.expireAt === "") {
+            pool.expireAt = defaultExpiration
+            console.log(pool);
         }
 
         const res = await db.collection("pools").insertOne(pool);
@@ -37,6 +43,10 @@ export async function createPool(request, response) {
 
 export async function getPools(request, response) {
     try {
+        const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
+
+
+
         const pools = await db.collection("pools").find({}).toArray();
 
         response.send(pools);
@@ -44,5 +54,4 @@ export async function getPools(request, response) {
         console.log(error, "Error getting pools");
         response.sendStatus(500);
     }
-    console.log(currentDay);
 };
