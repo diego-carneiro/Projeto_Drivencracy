@@ -3,13 +3,10 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js"
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from 'dotenv';
+import titleSchema from "../schemas/titleSchema"
 
 dotenv.config();
 dayjs.extend(utc);
-
-const titleSchema = joi.object({
-    title: joi.string().required()
-}).unknown(true);
 
 const mongoClient = new MongoClient(process.env.MONGO_URI);
 let db;
@@ -39,19 +36,20 @@ export async function createChoice(request, response) {
         const diff = dayjs(expireDate).diff(currentDay, 'minutes')
 
         if (diff <= 0) {
-            await db.collection("pools").deleteOne({ _id: new ObjectId(choice.poolId) })
+            return response.sendStatus(403)
         }
 
         const isRepeated = await db.collection("choices").findOne({ title: choice.title });
-        // tem que arrumar;
 
         if (isRepeated) {
             return response.sendStatus(409);
         }
 
         const res = await db.collection("choices").insertOne(choice);
-
-        const createdChoice = await db.collection("choices").findOne({ _id: res.insertedId })
+console.log(res, "log do codigo");
+        // const createdChoice = await db.collection("choices").findOne({ _id: res.insertedId })
+        const createdChoice = await db.collection("choices").find({}).toArray();
+        console.log(createdChoice);
 
         response.status(201).send(createdChoice);
     } catch (error) {
@@ -75,24 +73,22 @@ export async function getChoices(request, response) {
 
 export async function vote(request, response) {
     const choiceId = request.params.id;
+    console.log(request.params);
+    const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
 
     try {
-        const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
-
-
         const choice = await db.collection("choices").findOne({ _id: new ObjectId(choiceId) });
 
         if (!choice) {
             return response.sendStatus(404);
         }
 
-
         const saveVote = await db.collection("votes").insertOne({
             createdAt: currentDay,
             choiceId: choiceId,
         });
 
-        response.status(200).send(choice);
+        response.status(201).send(choice);
     } catch (error) {
         console.log(error, "Error getting pool's choices");
         response.sendStatus(500);

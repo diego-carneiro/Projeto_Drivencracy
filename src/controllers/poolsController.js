@@ -1,13 +1,10 @@
 import joi from "joi";
 import dayjs from "dayjs";
-import { MongoClient, ObjectId  } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from 'dotenv';
+import titleSchema from "../schemas/titleSchema"
 
 dotenv.config();
-
-const titleSchema = joi.object({
-    title: joi.string().required()
-}).unknown(true);
 
 const mongoClient = new MongoClient(process.env.MONGO_URI);
 let db;
@@ -28,7 +25,6 @@ export async function createPool(request, response) {
 
         if (pool.expireAt === "") {
             pool.expireAt = defaultExpiration
-            console.log(pool);
         }
 
         const res = await db.collection("pools").insertOne(pool);
@@ -41,12 +37,8 @@ export async function createPool(request, response) {
     }
 };
 
-export async function getPools(request, response) {
+export async function getPools(_request, response) {
     try {
-        const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
-
-
-
         const pools = await db.collection("pools").find({}).toArray();
 
         response.send(pools);
@@ -64,9 +56,7 @@ export async function getVotes(request, response) {
     try {
         const pool = await db.collection("pools").findOne({ _id: new ObjectId(id) });
         const choices = await db.collection("choices").find({ poolId: id }).toArray();
-        
-        const votes = await db.collection("votes").find({}).toArray();;
-        let count = 0;
+        const votes = await db.collection("votes").find({}).toArray();
 
         for (let i = 0; i < choices.length; i++) {
             result = {};
@@ -88,14 +78,17 @@ export async function getVotes(request, response) {
         let topIndex = 0;
 
         for (let index = 0; index < arrResults.length; index++) {
-            
+
             if (arrResults[index].votes > auxCount) {
                 auxCount = arrResults[index].votes;
                 topIndex = index;
             }
         }
 
-        response.send(arrResults[topIndex]);
+        response.send({
+            ...pool,
+            result: arrResults[topIndex]
+        });
     } catch (error) {
         console.log(error, "Error getting result");
         response.sendStatus(500);
