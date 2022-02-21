@@ -38,12 +38,12 @@ export async function createChoice(request, response) {
 
         const diff = dayjs(expireDate).diff(currentDay, 'minutes')
 
-        if (diff === 0) {
+        if (diff <= 0) {
             await db.collection("pools").deleteOne({ _id: new ObjectId(choice.poolId) })
         }
 
         const isRepeated = await db.collection("choices").findOne({ title: choice.title });
-        // console.log(isRepeated, "ISSO AQUI");
+        // tem que arrumar;
 
         if (isRepeated) {
             return response.sendStatus(409);
@@ -87,7 +87,6 @@ export async function vote(request, response) {
         }
 
 
-
         const saveVote = await db.collection("votes").insertOne({
             createdAt: currentDay,
             choiceId: choiceId,
@@ -99,11 +98,3 @@ export async function vote(request, response) {
         response.sendStatus(500);
     }
 }
-
-const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
-
-const defaultExpiration = dayjs().add("30", "day").utc().local().format("YYYY-MM-DD HH:mm");
-console.log(defaultExpiration);
-
-const diff = dayjs(defaultExpiration).diff(currentDay, 'minutes')
-console.log(diff);

@@ -1,6 +1,6 @@
 import joi from "joi";
 import dayjs from "dayjs";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId  } from "mongodb";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -55,3 +55,50 @@ export async function getPools(request, response) {
         response.sendStatus(500);
     }
 };
+
+export async function getVotes(request, response) {
+    const id = request.params.id;
+    let result = {};
+    let arrResults = [];
+
+    try {
+        const pool = await db.collection("pools").findOne({ _id: new ObjectId(id) });
+        const choices = await db.collection("choices").find({ poolId: id }).toArray();
+        
+        const votes = await db.collection("votes").find({}).toArray();;
+        let count = 0;
+
+        for (let i = 0; i < choices.length; i++) {
+            result = {};
+            let votesTotal = 0
+            for (let j = 0; j < votes.length; j++) {
+
+                if (choices[i]._id.toString() === votes[j].choiceId.toString()) {
+                    votesTotal++
+
+                    result = {
+                        title: choices[i].title,
+                        votes: votesTotal,
+                    }
+                }
+            }
+            arrResults.push(result);
+        }
+        let auxCount = arrResults[0].votes;
+        let topIndex = 0;
+
+        for (let index = 0; index < arrResults.length; index++) {
+            
+            if (arrResults[index].votes > auxCount) {
+                auxCount = arrResults[index].votes;
+                topIndex = index;
+            }
+        }
+
+        response.send(arrResults[topIndex]);
+    } catch (error) {
+        console.log(error, "Error getting result");
+        response.sendStatus(500);
+    }
+};
+
