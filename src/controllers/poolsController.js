@@ -1,16 +1,5 @@
-import joi from "joi";
 import dayjs from "dayjs";
-import { MongoClient, ObjectId } from "mongodb";
-import dotenv from 'dotenv';
-import titleSchema from "../schemas/titleSchema"
-
-dotenv.config();
-
-const mongoClient = new MongoClient(process.env.MONGO_URI);
-let db;
-mongoClient.connect().then(() => {
-    db = mongoClient.db("API_Drivencracy");
-});
+import { ObjectId } from "mongodb";
 
 export async function createPool(request, response) {
     const pool = request.body;
