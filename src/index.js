@@ -1,8 +1,7 @@
 import express, { json } from "express";
 import cors from 'cors';
 import dotenv from 'dotenv';
-import poolsRouter from "./routes/poolsRouter.js"
-import choicesRouter from "./routes/choicesRouter.js"
+
 
 dotenv.config();
 const server = express();
