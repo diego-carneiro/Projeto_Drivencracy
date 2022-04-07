@@ -1,19 +1,15 @@
 import dayjs from "dayjs";
 import { ObjectId } from "mongodb";
+import db from "../db.js";
 
 export async function createPool(request, response) {
     const pool = request.body;
     const defaultExpiration = dayjs().add("30", "day").utc().local().format("YYYY-MM-DD HH:mm");
 
     try {
-        const validation = titleSchema.validate(request.body);
-
-        if (validation.error) {
-            return response.status(422).send(validation.error.details);
-        }
 
         if (pool.expireAt === "") {
-            pool.expireAt = defaultExpiration
+            pool.expireAt = defaultExpiration;
         }
 
         const res = await db.collection("pools").insertOne(pool);
