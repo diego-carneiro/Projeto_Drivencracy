@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js"
 import { ObjectId } from "mongodb";
+import db from "../db.js";
 
 dayjs.extend(utc);
 
@@ -9,12 +10,6 @@ export async function createChoice(request, response) {
     const currentDay = dayjs.utc().local().format("YYYY-MM-DD HH:mm");
 
     try {
-        const validation = titleSchema.validate(request.body);
-
-        if (validation.error) {
-            return response.status(422).send(validation.error.details);
-        }
-
         const isCreated = await db.collection("pools").findOne({ _id: new ObjectId(choice.poolId) });
 
         if (!isCreated) {
